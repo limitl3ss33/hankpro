@@ -543,7 +543,7 @@ body.dark-mode .logo-text {
 
 /* Calculator Pages */
 .calc-main {
-    max-width: 1200px; /* Adjusted to fit 4 charts comfortably */
+    max-width: 1200px; /* Adjusted to fit 2 charts per row comfortably */
     margin: 60px auto;
     padding: 0 20px;
     padding-bottom: 80px; /* Increased padding to ensure footer doesn't overlap */
@@ -1401,16 +1401,10 @@ body.dark-mode .chart-controls label {
 /* Updated Chart Layout */
 .tool-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr); /* 4x2 grid for large screens */
+    grid-template-columns: repeat(2, 1fr); /* 2x4 grid for large and medium screens */
     gap: 20px;
     margin-bottom: 20px;
     width: 100%; /* Ensure grid takes full width of parent */
-}
-
-@media (max-width: 1200px) {
-    .tool-grid {
-        grid-template-columns: repeat(2, 1fr); /* 2x4 grid for medium screens */
-    }
 }
 
 @media (max-width: 768px) {
