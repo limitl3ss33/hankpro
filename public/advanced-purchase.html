@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hanks Tools - Advanced Purchase</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="header"></div>
+
+    <main class="calc-main">
+        <section class="calculator">
+            <h2>Advanced Purchase Calculator</h2>
+            <p>Calculate your full home purchase payment</p>
+            <div class="input-panel">
+                <div class="input-group">
+                    <label for="home-value">Home Value ($) <span class="required-asterisk">*</span></label>
+                    <input type="number" id="home-value" placeholder="300000" required oninput="updateLoanAmount()">
+                </div>
+                <div class="input-group">
+                    <label for="down-payment">Down Payment (%) <span class="required-asterisk">*</span></label>
+                    <input type="number" id="down-payment" step="0.01" placeholder="20" required oninput="updateLoanAmount()">
+                </div>
+                <div class="input-group">
+                    <label for="loan-amount">Loan Amount ($) <span class="required-asterisk">*</span></label>
+                    <input type="number" id="loan-amount" placeholder="240000" required>
+                </div>
+                <div class="input-group">
+                    <label for="interest-rate">Interest Rate (%) <span class="required-asterisk">*</span></label>
+                    <input type="number" id="interest-rate" step="0.01" placeholder="5.5" required>
+                </div>
+                <div class="input-group">
+                    <label for="loan-term">Loan Term (years) <span class="required-asterisk">*</span></label>
+                    <input type="number" id="loan-term" placeholder="30" required>
+                </div>
+                <div class="input-group">
+                    <label for="tax-type">Property Taxes <span class="required-asterisk">*</span></label>
+                    <select id="tax-type">
+                        <option value="rate">Tax Rate (%)</option>
+                        <option value="monthly">Monthly ($)</option>
+                    </select>
+                </div>
+                <div class="input-group tax-field" id="tax-rate-group">
+                    <label for="tax-rate">Annual Tax Rate (%) <span class="required-asterisk">*</span></label>
+                    <input type="number" id="tax-rate" step="0.01" placeholder="1.2" required>
+                </div>
+                <div class="input-group tax-field hidden" id="tax-monthly-group">
+                    <label for="tax-monthly">Monthly Taxes ($) <span class="required-asterisk">*</span></label>
+                    <input type="number" id="tax-monthly" placeholder="300" required>
+                </div>
+                <div class="input-group">
+                    <label for="insurance">Monthly Insurance ($) <span class="required-asterisk">*</span></label>
+                    <input type="number" id="insurance" placeholder="100" required>
+                </div>
+                <div class="input-group">
+                    <label for="hoa">Monthly HOA ($) <span class="required-asterisk">*</span></label>
+                    <input type="number" id="hoa" placeholder="50" required>
+                </div>
+                <div class="input-group hidden" id="pmi-group">
+                    <label for="pmi">Monthly PMI ($) <em>(Optional, if LTV > 80%)</em></label>
+                    <input type="number" id="pmi" placeholder="80">
+                </div>
+                <div class="input-group">
+                    <label for="loan-type">Loan Type <span class="required-asterisk">*</span></label>
+                    <select id="loan-type">
+                        <option value="amortized">Amortized</option>
+                        <option value="interest-only">Interest Only</option>
+                    </select>
+                </div>
+                <div class="input-group hidden" id="interest-only-period-group">
+                    <label for="interest-only-period">Interest-Only Period (years) <span class="required-asterisk">*</span></label>
+                    <input type="number" id="interest-only-period" placeholder="10" required>
+                </div>
+            </div>
+            <div class="button-group">
+                <button id="compute-btn">Compute Payment</button>
+                <button id="reset-btn" class="reset-btn hidden">Reset</button>
+            </div>
+            <div id="result" class="result-panel hidden"></div>
+        </section>
+    </main>
+
+    <div id="footer"></div>
+
+    <script>
+        fetch('header.html')
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('header').innerHTML = data;
+                const savedMode = localStorage.getItem('theme');
+                if (savedMode === 'dark') {
+                    document.body.classList.add('dark-mode');
+                }
+                document.getElementById('dark-mode-toggle').addEventListener('click', () => {
+                    document.body.classList.toggle('dark-mode');
+                    if (document.body.classList.contains('dark-mode')) {
+                        localStorage.setItem('theme', 'dark');
+                    } else {
+                        localStorage.setItem('theme', 'light');
+                    }
+                });
+            });
+        fetch('footer.html').then(response => response.text()).then(data => {
+            document.getElementById('footer').innerHTML = data;
+        });
+    </script>
+    <script src="scripts/global.js" type="text/javascript"></script>
+    <script src="scripts/advanced-purchase.js"></script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hanks Tools - Rate Prediction Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div id="header"></div>
+
+    <main class="calc-main">
+        <section class="calculator">
+            <h2>Rate Prediction Dashboard</h2>
+            <p>Analyze market trends and predict Non-QM rate movements</p>
+            <div id="metrics" class="tool-grid">
+                <div class="tool-tile chart-container">
+                    <canvas id="treasury-chart"></canvas>
+                </div>
+                <div class="tool-tile chart-container">
+                    <canvas id="vix-chart"></canvas>
+                </div>
+                <div class="tool-tile chart-container">
+                    <canvas id="cpi-chart"></canvas>
+                </div>
+                <div class="tool-tile chart-container">
+                    <canvas id="baml-chart"></canvas>
+                </div>
+            </div>
+            <div id="prediction" class="result-panel">
+                <h3>Rate Prediction</h3>
+                <p id="result">Loading prediction...</p>
+            </div>
+        </section>
+    </main>
+
+    <div id="footer"></div>
+
+    <script>
+        fetch('header.html').then(response => response.text()).then(data => {
+            document.getElementById('header').innerHTML = data;
+            const savedMode = localStorage.getItem('theme');
+            if (savedMode === 'dark') {
+                document.body.classList.add('dark-mode');
+            }
+            document.getElementById('dark-mode-toggle').addEventListener('click', () => {
+                document.body.classList.toggle('dark-mode');
+                localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+            });
+        });
+        fetch('footer.html').then(response => response.text()).then(data => {
+            document.getElementById('footer').innerHTML = data;
+        });
+    </script>
+    <script src="scripts/global.js" type="text/javascript"></script>
+    <script src="scripts/dashboard.js" type="text/javascript"></script>
+</body>
+</html>
