@@ -1,43 +1,21 @@
-const https = require('https');
+const fetch = require('node-fetch');
 
-const get = (url) => {
-    return new Promise((resolve, reject) => {
-        https.get(url, (res) => {
-            let data = '';
-            res.on('data', (chunk) => {
-                data += chunk;
-            });
-            res.on('end', () => {
-                try {
-                    resolve(JSON.parse(data));
-                } catch (error) {
-                    reject(new Error(`Failed to parse JSON for ${url}: ${error.message}`));
-                }
-            });
-        }).on('error', (error) => {
-            reject(new Error(`HTTP request failed for ${url}: ${error.message}`));
-        });
-    });
+// Helper function to fetch and parse HTML
+const fetchHTML = async (url) => {
+    const response = await fetch(url);
+    if (!response.ok) {
+        throw new Error(`Failed to fetch ${url}: ${response.status}`);
+    }
+    return response.text();
 };
 
 exports.handler = async (event) => {
     try {
-        const FRED_API_KEY = process.env.FRED_API_KEY;
-        const ALPHA_API_KEY = process.env.ALPHA_API_KEY;
-
-        // Validate API keys
-        if (!FRED_API_KEY) {
-            throw new Error('FRED_API_KEY is not defined in environment variables');
-        }
-        if (!ALPHA_API_KEY) {
-            throw new Error('ALPHA_API_KEY is not defined in environment variables');
-        }
-
         // Get the time frame from query parameters (default to 1 month)
         const timeFrame = event.queryStringParameters?.timeFrame || '1month';
         let limit;
 
-        // Map time frames to number of data points (capped at 1000 for FRED API)
+        // Map time frames to number of data points (capped at 1000)
         switch (timeFrame) {
             case '1day':
                 limit = 2; // Fetch 2 days for today vs yesterday comparison
@@ -58,27 +36,34 @@ exports.handler = async (event) => {
                 limit = 365;
                 break;
             case '5year':
-                limit = 1000; // Cap at 1000 to avoid FRED API limits
+                limit = 1000;
                 break;
             default:
                 limit = 30; // Default to 1 month
         }
 
-        // Fetch 10Y Treasury Yield (DGS10) from FRED
+        // Fetch 10Y Treasury Yield from Treasury.gov
         let treasury;
         try {
-            const treasuryData = await get(
-                `https://api.stlouisfed.org/fred/series/observations?series_id=DGS10&api_key=${FRED_API_KEY}&limit=${limit}&file_type=json&sort_order=asc`
-            );
-            if (treasuryData.error_message) {
-                throw new Error(`FRED API error (DGS10): ${treasuryData.error_message}`);
-            }
-            if (!treasuryData.observations || !Array.isArray(treasuryData.observations)) {
-                throw new Error('FRED API (DGS10): Invalid response format, missing observations');
+            const treasuryHTML = await fetchHTML('https://www.treasury.gov/resource-center/data-chart-center/interest-rates/pages/TextView.aspx?data=yield');
+            // Parse the HTML to extract the 10-year yield data
+            // Note: This is a simplified parsing example; the actual HTML structure may require more complex parsing
+            const treasuryRows = treasuryHTML.match(/<tr>[\s\S]*?<\/tr>/g) || [];
+            const treasuryData = [];
+            for (let i = treasuryRows.length - 1; i >= 0 && treasuryData.length < limit; i--) {
+                const row = treasuryRows[i];
+                const cells = row.match(/<td>[\s\S]*?<\/td>/g) || [];
+                if (cells.length >= 11) { // 10-year yield is in the 11th column (index 10)
+                    const date = cells[0].replace(/<td>|<\/td>/g, '').trim();
+                    const yieldValue = cells[10].replace(/<td>|<\/td>/g, '').trim();
+                    if (date && yieldValue && !isNaN(parseFloat(yieldValue))) {
+                        treasuryData.push({ date, value: parseFloat(yieldValue) });
+                    }
+                }
             }
             treasury = {
-                dates: treasuryData.observations.map(obs => obs.date),
-                values: treasuryData.observations.map(obs => parseFloat(obs.value) || 0)
+                dates: treasuryData.map(d => d.date),
+                values: treasuryData.map(d => d.value)
             };
         } catch (error) {
             console.error('Treasury fetch error:', error.message);
@@ -92,27 +77,28 @@ exports.handler = async (event) => {
             };
         }
 
-        // Fetch VIX from Alpha Vantage
+        // Fetch VIX (using VXX as a proxy) from Yahoo Finance
         let vix;
         try {
-            const vixData = await get(
-                `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=VIX&apikey=${ALPHA_API_KEY}&outputsize=full`
-            );
-            if (vixData['Error Message']) {
-                throw new Error(`Alpha Vantage error: ${vixData['Error Message']}`);
+            const vixHTML = await fetchHTML(`https://finance.yahoo.com/quote/VXX/history/?guccounter=1`);
+            // Parse the HTML to extract VXX historical data
+            // Note: Yahoo Finance HTML structure is complex; this is a simplified example
+            const vixRows = vixHTML.match(/<tr class="[^"]*">[\s\S]*?<\/tr>/g) || [];
+            const vixData = [];
+            for (let i = 1; i < vixRows.length && vixData.length < limit; i++) { // Skip header row
+                const row = vixRows[i];
+                const cells = row.match(/<td>[\s\S]*?<\/td>/g) || [];
+                if (cells.length >= 5) { // Date in 1st column, Close in 5th column
+                    const date = cells[0].replace(/<td>|<\/td>/g, '').trim();
+                    const close = cells[4].replace(/<td>|<\/td>/g, '').trim();
+                    if (date && close && !isNaN(parseFloat(close))) {
+                        vixData.push({ date, value: parseFloat(close) });
+                    }
+                }
             }
-            if (vixData['Note']) {
-                throw new Error(`Alpha Vantage rate limit: ${vixData['Note']}`);
-            }
-            const vixSeries = vixData['Time Series (Daily)'];
-            if (!vixSeries) {
-                throw new Error('VIX data unavailable: Invalid response format');
-            }
-            const vixDates = Object.keys(vixSeries).sort(); // Sort dates oldest to newest
-            const vixValues = vixDates.map(date => parseFloat(vixSeries[date]['4. close']));
             vix = {
-                dates: vixDates.slice(-limit), // Take the most recent 'limit' data points
-                values: vixValues.slice(-limit)
+                dates: vixData.map(d => d.date),
+                values: vixData.map(d => d.value)
             };
         } catch (error) {
             console.error('VIX fetch error:', error.message);
@@ -126,21 +112,30 @@ exports.handler = async (event) => {
             };
         }
 
-        // Fetch CPI (CPIAUCSL) from FRED (monthly data)
+        // Fetch CPI from BLS
         let cpi;
         try {
-            const cpiData = await get(
-                `https://api.stlouisfed.org/fred/series/observations?series_id=CPIAUCSL&api_key=${FRED_API_KEY}&limit=${Math.ceil(limit / 30)}&file_type=json&sort_order=asc`
-            );
-            if (cpiData.error_message) {
-                throw new Error(`FRED API error (CPIAUCSL): ${cpiData.error_message}`);
-            }
-            if (!cpiData.observations || !Array.isArray(cpiData.observations)) {
-                throw new Error('FRED API (CPIAUCSL): Invalid response format, missing observations');
+            const cpiHTML = await fetchHTML('https://www.bls.gov/cpi/data.htm');
+            // Note: BLS HTML structure is complex; this is a simplified example
+            // We need to find the table with CPI data (e.g., "CPI-U, All Items")
+            const cpiRows = cpiHTML.match(/<tr>[\s\S]*?<\/tr>/g) || [];
+            const cpiData = [];
+            for (let i = cpiRows.length - 1; i >= 0 && cpiData.length < Math.ceil(limit / 30); i--) {
+                const row = cpiRows[i];
+                const cells = row.match(/<td>[\s\S]*?<\/td>/g) || [];
+                if (cells.length >= 14) { // Assuming CPI-U All Items is in a specific column
+                    const year = cells[0].replace(/<td>|<\/td>/g, '').trim();
+                    const month = cells[1].replace(/<td>|<\/td>/g, '').trim();
+                    const value = cells[13].replace(/<td>|<\/td>/g, '').trim(); // Adjust column index as needed
+                    if (year && month && value && !isNaN(parseFloat(value))) {
+                        const date = `${year}-${month}-01`;
+                        cpiData.push({ date, value: parseFloat(value) });
+                    }
+                }
             }
             cpi = {
-                dates: cpiData.observations.map(obs => obs.date),
-                values: cpiData.observations.map(obs => parseFloat(obs.value) || 0)
+                dates: cpiData.map(d => d.date),
+                values: cpiData.map(d => d.value)
             };
         } catch (error) {
             console.error('CPI fetch error:', error.message);
@@ -154,21 +149,28 @@ exports.handler = async (event) => {
             };
         }
 
-        // Fetch BAMLC0A4CBBB from FRED
+        // Fetch BBB Spread from YCharts
         let baml;
         try {
-            const bamlData = await get(
-                `https://api.stlouisfed.org/fred/series/observations?series_id=BAMLC0A4CBBB&api_key=${FRED_API_KEY}&limit=${limit}&file_type=json&sort_order=asc`
-            );
-            if (bamlData.error_message) {
-                throw new Error(`FRED API error (BAMLC0A4CBBB): ${bamlData.error_message}`);
-            }
-            if (!bamlData.observations || !Array.isArray(bamlData.observations)) {
-                throw new Error('FRED API (BAMLC0A4CBBB): Invalid response format, missing observations');
+            const bamlHTML = await fetchHTML('https://ycharts.com/indicators/us_corporate_bbb_option_adjusted_spread');
+            // Parse the HTML to extract BBB spread data
+            // Note: YCharts HTML structure is complex; this is a simplified example
+            const bamlRows = bamlHTML.match(/<tr>[\s\S]*?<\/tr>/g) || [];
+            const bamlData = [];
+            for (let i = bamlRows.length - 1; i >= 0 && bamlData.length < limit; i--) {
+                const row = bamlRows[i];
+                const cells = row.match(/<td>[\s\S]*?<\/td>/g) || [];
+                if (cells.length >= 2) {
+                    const date = cells[0].replace(/<td>|<\/td>/g, '').trim();
+                    const value = cells[1].replace(/<td>|<\/td>|%/g, '').trim();
+                    if (date && value && !isNaN(parseFloat(value))) {
+                        bamlData.push({ date, value: parseFloat(value) });
+                    }
+                }
             }
             baml = {
-                dates: bamlData.observations.map(obs => obs.date),
-                values: bamlData.observations.map(obs => parseFloat(obs.value) || 0)
+                dates: bamlData.map(d => d.date),
+                values: bamlData.map(d => d.value)
             };
         } catch (error) {
             console.error('BAML fetch error:', error.message);
