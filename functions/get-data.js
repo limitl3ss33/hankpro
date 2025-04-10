@@ -32,39 +32,51 @@ exports.handler = async (event) => {
         // Get the time frame from query parameters (default to 1 month)
         const timeFrame = event.queryStringParameters?.timeFrame || '1month';
         let limit;
+        let startDate = new Date();
 
-        // Map time frames to number of data points (capped at 1000 for FRED API)
+        // Map time frames to number of data points and start date
         switch (timeFrame) {
             case '1day':
                 limit = 2; // Fetch 2 days for today vs yesterday comparison
+                startDate.setDate(startDate.getDate() - 2);
                 break;
             case '3day':
                 limit = 3;
+                startDate.setDate(startDate.getDate() - 3);
                 break;
             case '7day':
                 limit = 7;
+                startDate.setDate(startDate.getDate() - 7);
                 break;
             case '1month':
                 limit = 30;
+                startDate.setDate(startDate.getDate() - 30);
                 break;
             case '3month':
                 limit = 90;
+                startDate.setDate(startDate.getDate() - 90);
                 break;
             case '1year':
                 limit = 365;
+                startDate.setDate(startDate.getDate() - 365);
                 break;
             case '5year':
                 limit = 1000; // Cap at 1000 to avoid FRED API limits
+                startDate.setDate(startDate.getDate() - 1825);
                 break;
             default:
                 limit = 30; // Default to 1 month
+                startDate.setDate(startDate.getDate() - 30);
         }
+
+        const startDateStr = startDate.toISOString().split('T')[0];
+        const endDateStr = new Date().toISOString().split('T')[0];
 
         // Fetch 10Y Treasury Yield (DGS10) from FRED
         let treasury;
         try {
             const treasuryData = await get(
-                `https://api.stlouisfed.org/fred/series/observations?series_id=DGS10&api_key=${FRED_API_KEY}&limit=${limit}&file_type=json&sort_order=asc`
+                `https://api.stlouisfed.org/fred/series/observations?series_id=DGS10&api_key=${FRED_API_KEY}&limit=${limit}&file_type=json&sort_order=asc&observation_start=${startDateStr}&observation_end=${endDateStr}`
             );
             if (treasuryData.error_message) {
                 throw new Error(`FRED API error (DGS10): ${treasuryData.error_message}`);
@@ -92,7 +104,7 @@ exports.handler = async (event) => {
         let tedSpread;
         try {
             const tedData = await get(
-                `https://api.stlouisfed.org/fred/series/observations?series_id=TEDRATE&api_key=${FRED_API_KEY}&limit=${limit}&file_type=json&sort_order=asc`
+                `https://api.stlouisfed.org/fred/series/observations?series_id=TEDRATE&api_key=${FRED_API_KEY}&limit=${limit}&file_type=json&sort_order=asc&observation_start=${startDateStr}&observation_end=${endDateStr}`
             );
             if (tedData.error_message) {
                 throw new Error(`FRED API error (TEDRATE): ${tedData.error_message}`);
@@ -120,7 +132,7 @@ exports.handler = async (event) => {
         let cpi;
         try {
             const cpiData = await get(
-                `https://api.stlouisfed.org/fred/series/observations?series_id=CPIAUCSL&api_key=${FRED_API_KEY}&limit=${Math.ceil(limit / 30)}&file_type=json&sort_order=asc`
+                `https://api.stlouisfed.org/fred/series/observations?series_id=CPIAUCSL&api_key=${FRED_API_KEY}&limit=${Math.ceil(limit / 30)}&file_type=json&sort_order=asc&observation_start=${startDateStr}&observation_end=${endDateStr}`
             );
             if (cpiData.error_message) {
                 throw new Error(`FRED API error (CPIAUCSL): ${cpiData.error_message}`);
@@ -148,7 +160,7 @@ exports.handler = async (event) => {
         let baml;
         try {
             const bamlData = await get(
-                `https://api.stlouisfed.org/fred/series/observations?series_id=BAMLC0A4CBBB&api_key=${FRED_API_KEY}&limit=${limit}&file_type=json&sort_order=asc`
+                `https://api.stlouisfed.org/fred/series/observations?series_id=BAMLC0A4CBBB&api_key=${FRED_API_KEY}&limit=${limit}&file_type=json&sort_order=asc&observation_start=${startDateStr}&observation_end=${endDateStr}`
             );
             if (bamlData.error_message) {
                 throw new Error(`FRED API error (BAMLC0A4CBBB): ${bamlData.error_message}`);
