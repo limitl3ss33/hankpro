@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
 </head>
 <body>
     <div id="header"></div>
@@ -16,17 +17,29 @@
             <h2>Rate Prediction Dashboard</h2>
             <p>Analyze market trends and predict Non-QM rate movements</p>
             <div id="metrics" class="tool-grid">
-                <div class="tool-tile chart-container">
+                <div id="treasury-container" class="tool-tile chart-container">
                     <canvas id="treasury-chart"></canvas>
                 </div>
-                <div class="tool-tile chart-container">
-                    <canvas id="vix-chart"></canvas>
+                <div id="tedspread-container" class="tool-tile chart-container">
+                    <canvas id="tedspread-chart"></canvas>
                 </div>
-                <div class="tool-tile chart-container">
+                <div id="cpi-container" class="tool-tile chart-container">
                     <canvas id="cpi-chart"></canvas>
                 </div>
-                <div class="tool-tile chart-container">
+                <div id="baml-container" class="tool-tile chart-container">
                     <canvas id="baml-chart"></canvas>
+                </div>
+                <div id="mortgage-spread-container" class="tool-tile chart-container">
+                    <canvas id="mortgage-spread-chart"></canvas>
+                </div>
+                <div id="unemployment-container" class="tool-tile chart-container">
+                    <canvas id="unemployment-chart"></canvas>
+                </div>
+                <div id="housing-starts-container" class="tool-tile chart-container">
+                    <canvas id="housing-starts-chart"></canvas>
+                </div>
+                <div id="consumer-sentiment-container" class="tool-tile chart-container">
+                    <canvas id="consumer-sentiment-chart"></canvas>
                 </div>
             </div>
             <div id="prediction" class="result-panel">
