@@ -40,7 +40,7 @@ exports.handler = async (event) => {
         // Map time frames to number of data points (capped at 1000 for FRED API)
         switch (timeFrame) {
             case '1day':
-                limit = 1;
+                limit = 2; // Fetch 2 days for today vs yesterday comparison
                 break;
             case '3day':
                 limit = 3;
@@ -184,6 +184,11 @@ exports.handler = async (event) => {
 
         return {
             statusCode: 200,
+            headers: {
+                'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
+            },
             body: JSON.stringify({ treasury, vix, cpi, baml })
         };
     } catch (error) {
