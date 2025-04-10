@@ -53,8 +53,9 @@ class SimpleLogisticRegression {
 function updateChartColors() {
     const isDark = document.body.classList.contains('dark-mode');
     const labelColor = isDark ? '#f3f4f6' : '#000';
-    [treasuryChart, tedSpreadChart, cpiChart, bamlChart, mortgageSpreadChart, unemploymentChart, housingStartsChart, consumerSentimentChart].forEach(chart => {
-        if (chart) {
+    const charts = [treasuryChart, tedSpreadChart, cpiChart, bamlChart, mortgageSpreadChart, unemploymentChart, housingStartsChart, consumerSentimentChart];
+    charts.forEach(chart => {
+        if (chart) { // Only update if chart exists
             chart.options.plugins.legend.labels.color = labelColor;
             chart.options.scales.x.title.color = labelColor;
             chart.options.scales.y.title.color = labelColor;
@@ -66,6 +67,56 @@ function updateChartColors() {
             chart.update();
         }
     });
+}
+
+// Chart options with enhanced details
+const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+        x: { 
+            title: { display: true, text: 'Date', color: document.body.classList.contains('dark-mode') ? '#f3f4f6' : '#000' }, 
+            ticks: { color: document.body.classList.contains('dark-mode') ? '#f3f4f6' : '#000' } 
+        },
+        y: { 
+            beginAtZero: false, 
+            title: { display: true, color: document.body.classList.contains('dark-mode') ? '#f3f4f6' : '#000' }, 
+            ticks: { color: document.body.classList.contains('dark-mode') ? '#f3f4f6' : '#000' } 
+        }
+    },
+    plugins: {
+        legend: { labels: { color: document.body.classList.contains('dark-mode') ? '#f3f4f6' : '#000' } },
+        tooltip: {
+            enabled: true,
+            titleFont: { size: 14 },
+            bodyFont: { size: 12 },
+            callbacks: {
+                label: (context) => `${context.dataset.label}: ${context.parsed.y.toFixed(2)}`
+            }
+        },
+        datalabels: {
+            display: true,
+            color: document.body.classList.contains('dark-mode') ? '#f3f4f6' : '#000',
+            formatter: (value) => value.toFixed(2),
+            anchor: 'end',
+            align: 'top'
+        }
+    }
+};
+
+// Chart instances
+let treasuryChart, tedSpreadChart, cpiChart, bamlChart, mortgageSpreadChart, unemploymentChart, housingStartsChart, consumerSentimentChart;
+
+// Function to initialize a chart if its container is visible
+function initializeChart(chartId, config) {
+    const container = document.getElementById(`${chartId}-container`);
+    if (container.style.display !== 'none') {
+        const canvas = document.getElementById(`${chartId}-chart`);
+        if (canvas) {
+            return new Chart(canvas, config);
+        }
+    }
+    return null;
 }
 
 // Data fetching and rendering
@@ -140,49 +191,6 @@ async function loadDashboard(timeFrame = '1month') {
             reasoning += `- ${features[i]} (${value.toFixed(2)}): ${direction} the likelihood of a rate increase (impact: ${impact.toFixed(2)})\n`;
         });
 
-        // Chart options with enhanced details
-        const chartOptions = {
-            scales: {
-                x: { 
-                    title: { display: true, text: 'Date', color: document.body.classList.contains('dark-mode') ? '#f3f4f6' : '#000' }, 
-                    ticks: { color: document.body.classList.contains('dark-mode') ? '#f3f4f6' : '#000' } 
-                },
-                y: { 
-                    beginAtZero: false, 
-                    title: { display: true, color: document.body.classList.contains('dark-mode') ? '#f3f4f6' : '#000' }, 
-                    ticks: { color: document.body.classList.contains('dark-mode') ? '#f3f4f6' : '#000' } 
-                }
-            },
-            plugins: {
-                legend: { labels: { color: document.body.classList.contains('dark-mode') ? '#f3f4f6' : '#000' } },
-                tooltip: {
-                    enabled: true,
-                    titleFont: { size: 14 },
-                    bodyFont: { size: 12 },
-                    callbacks: {
-                        label: (context) => `${context.dataset.label}: ${context.parsed.y.toFixed(2)}`
-                    }
-                },
-                datalabels: {
-                    display: true,
-                    color: document.body.classList.contains('dark-mode') ? '#f3f4f6' : '#000',
-                    formatter: (value) => value.toFixed(2),
-                    anchor: 'end',
-                    align: 'top'
-                }
-            }
-        };
-
-        // Destroy existing charts if they exist
-        if (window.treasuryChart) window.treasuryChart.destroy();
-        if (window.tedSpreadChart) window.tedSpreadChart.destroy();
-        if (window.cpiChart) window.cpiChart.destroy();
-        if (window.bamlChart) window.bamlChart.destroy();
-        if (window.mortgageSpreadChart) window.mortgageSpreadChart.destroy();
-        if (window.unemploymentChart) window.unemploymentChart.destroy();
-        if (window.housingStartsChart) window.housingStartsChart.destroy();
-        if (window.consumerSentimentChart) window.consumerSentimentChart.destroy();
-
         // Load user preferences from localStorage
         const chartVisibility = JSON.parse(localStorage.getItem('chartVisibility')) || {
             treasury: true,
@@ -195,142 +203,126 @@ async function loadDashboard(timeFrame = '1month') {
             consumerSentiment: true
         };
 
-        // Render charts based on visibility
-        if (chartVisibility.treasury) {
-            window.treasuryChart = new Chart(document.getElementById('treasury-chart'), {
-                type: 'line',
-                data: {
-                    labels: treasuryLabels,
-                    datasets: [{
-                        label: '10Y Treasury Yield (%)',
-                        data: treasury.values,
-                        borderColor: '#6cebce',
-                        backgroundColor: 'rgba(108, 235, 206, 0.2)',
-                        fill: true
-                    }]
-                },
-                options: { ...chartOptions, scales: { ...chartOptions.scales, y: { ...chartOptions.scales.y, title: { ...chartOptions.scales.y.title, text: 'Yield (%)' } } } }
-            });
-        }
+        // Initialize charts based on visibility
+        treasuryChart = chartVisibility.treasury ? initializeChart('treasury', {
+            type: 'line',
+            data: {
+                labels: treasuryLabels,
+                datasets: [{
+                    label: '10Y Treasury Yield (%)',
+                    data: treasury.values,
+                    borderColor: '#6cebce',
+                    backgroundColor: 'rgba(108, 235, 206, 0.2)',
+                    fill: true
+                }]
+            },
+            options: { ...chartOptions, scales: { ...chartOptions.scales, y: { ...chartOptions.scales.y, title: { ...chartOptions.scales.y.title, text: 'Yield (%)' } } } }
+        }) : null;
 
-        if (chartVisibility.tedSpread) {
-            window.tedSpreadChart = new Chart(document.getElementById('tedspread-chart'), {
-                type: 'line',
-                data: {
-                    labels: tedSpreadLabels,
-                    datasets: [{
-                        label: 'TED Spread (%)',
-                        data: tedSpread.values,
-                        borderColor: '#6cebce',
-                        backgroundColor: 'rgba(108, 235, 206, 0.2)',
-                        fill: true
-                    }]
-                },
-                options: { ...chartOptions, scales: { ...chartOptions.scales, y: { ...chartOptions.scales.y, beginAtZero: true, title: { ...chartOptions.scales.y.title, text: 'Spread (%)' } } } }
-            });
-        }
+        tedSpreadChart = chartVisibility.tedSpread ? initializeChart('tedspread', {
+            type: 'line',
+            data: {
+                labels: tedSpreadLabels,
+                datasets: [{
+                    label: 'TED Spread (%)',
+                    data: tedSpread.values,
+                    borderColor: '#6cebce',
+                    backgroundColor: 'rgba(108, 235, 206, 0.2)',
+                    fill: true
+                }]
+            },
+            options: { ...chartOptions, scales: { ...chartOptions.scales, y: { ...chartOptions.scales.y, beginAtZero: true, title: { ...chartOptions.scales.y.title, text: 'Spread (%)' } } } }
+        }) : null;
 
-        if (chartVisibility.cpi) {
-            window.cpiChart = new Chart(document.getElementById('cpi-chart'), {
-                type: 'line',
-                data: {
-                    labels: cpiLabels,
-                    datasets: [{
-                        label: 'CPI Index',
-                        data: cpi.values,
-                        borderColor: '#6cebce',
-                        backgroundColor: 'rgba(108, 235, 206, 0.2)',
-                        fill: true
-                    }]
-                },
-                options: { ...chartOptions, scales: { ...chartOptions.scales, y: { ...chartOptions.scales.y, title: { ...chartOptions.scales.y.title, text: 'Index' } } } }
-            });
-        }
+        cpiChart = chartVisibility.cpi ? initializeChart('cpi', {
+            type: 'line',
+            data: {
+                labels: cpiLabels,
+                datasets: [{
+                    label: 'CPI Index',
+                    data: cpi.values,
+                    borderColor: '#6cebce',
+                    backgroundColor: 'rgba(108, 235, 206, 0.2)',
+                    fill: true
+                }]
+            },
+            options: { ...chartOptions, scales: { ...chartOptions.scales, y: { ...chartOptions.scales.y, title: { ...chartOptions.scales.y.title, text: 'Index' } } } }
+        }) : null;
 
-        if (chartVisibility.baml) {
-            window.bamlChart = new Chart(document.getElementById('baml-chart'), {
-                type: 'line',
-                data: {
-                    labels: bamlLabels,
-                    datasets: [{
-                        label: 'BBB Spread (%)',
-                        data: baml.values,
-                        borderColor: '#6cebce',
-                        backgroundColor: 'rgba(108, 235, 206, 0.2)',
-                        fill: true
-                    }]
-                },
-                options: { ...chartOptions, scales: { ...chartOptions.scales, y: { ...chartOptions.scales.y, title: { ...chartOptions.scales.y.title, text: 'Spread (%)' } } } }
-            });
-        }
+        bamlChart = chartVisibility.baml ? initializeChart('baml', {
+            type: 'line',
+            data: {
+                labels: bamlLabels,
+                datasets: [{
+                    label: 'BBB Spread (%)',
+                    data: baml.values,
+                    borderColor: '#6cebce',
+                    backgroundColor: 'rgba(108, 235, 206, 0.2)',
+                    fill: true
+                }]
+            },
+            options: { ...chartOptions, scales: { ...chartOptions.scales, y: { ...chartOptions.scales.y, title: { ...chartOptions.scales.y.title, text: 'Spread (%)' } } } }
+        }) : null;
 
-        if (chartVisibility.mortgageSpread) {
-            window.mortgageSpreadChart = new Chart(document.getElementById('mortgage-spread-chart'), {
-                type: 'line',
-                data: {
-                    labels: mortgageSpreadLabels,
-                    datasets: [{
-                        label: 'Mortgage Market Spread (%)',
-                        data: mortgageSpread.values,
-                        borderColor: '#6cebce',
-                        backgroundColor: 'rgba(108, 235, 206, 0.2)',
-                        fill: true
-                    }]
-                },
-                options: { ...chartOptions, scales: { ...chartOptions.scales, y: { ...chartOptions.scales.y, title: { ...chartOptions.scales.y.title, text: 'Spread (%)' } } } }
-            });
-        }
+        mortgageSpreadChart = chartVisibility.mortgageSpread ? initializeChart('mortgage-spread', {
+            type: 'line',
+            data: {
+                labels: mortgageSpreadLabels,
+                datasets: [{
+                    label: 'Mortgage Market Spread (%)',
+                    data: mortgageSpread.values,
+                    borderColor: '#6cebce',
+                    backgroundColor: 'rgba(108, 235, 206, 0.2)',
+                    fill: true
+                }]
+            },
+            options: { ...chartOptions, scales: { ...chartOptions.scales, y: { ...chartOptions.scales.y, title: { ...chartOptions.scales.y.title, text: 'Spread (%)' } } } }
+        }) : null;
 
-        if (chartVisibility.unemployment) {
-            window.unemploymentChart = new Chart(document.getElementById('unemployment-chart'), {
-                type: 'line',
-                data: {
-                    labels: unemploymentLabels,
-                    datasets: [{
-                        label: 'Unemployment Rate (%)',
-                        data: unemployment.values,
-                        borderColor: '#6cebce',
-                        backgroundColor: 'rgba(108, 235, 206, 0.2)',
-                        fill: true
-                    }]
-                },
-                options: { ...chartOptions, scales: { ...chartOptions.scales, y: { ...chartOptions.scales.y, title: { ...chartOptions.scales.y.title, text: 'Rate (%)' } } } }
-            });
-        }
+        unemploymentChart = chartVisibility.unemployment ? initializeChart('unemployment', {
+            type: 'line',
+            data: {
+                labels: unemploymentLabels,
+                datasets: [{
+                    label: 'Unemployment Rate (%)',
+                    data: unemployment.values,
+                    borderColor: '#6cebce',
+                    backgroundColor: 'rgba(108, 235, 206, 0.2)',
+                    fill: true
+                }]
+            },
+            options: { ...chartOptions, scales: { ...chartOptions.scales, y: { ...chartOptions.scales.y, title: { ...chartOptions.scales.y.title, text: 'Rate (%)' } } } }
+        }) : null;
 
-        if (chartVisibility.housingStarts) {
-            window.housingStartsChart = new Chart(document.getElementById('housing-starts-chart'), {
-                type: 'line',
-                data: {
-                    labels: housingStartsLabels,
-                    datasets: [{
-                        label: 'Housing Starts (Thousands)',
-                        data: housingStarts.values,
-                        borderColor: '#6cebce',
-                        backgroundColor: 'rgba(108, 235, 206, 0.2)',
-                        fill: true
-                    }]
-                },
-                options: { ...chartOptions, scales: { ...chartOptions.scales, y: { ...chartOptions.scales.y, title: { ...chartOptions.scales.y.title, text: 'Thousands' } } } }
-            });
-        }
+        housingStartsChart = chartVisibility.housingStarts ? initializeChart('housing-starts', {
+            type: 'line',
+            data: {
+                labels: housingStartsLabels,
+                datasets: [{
+                    label: 'Housing Starts (Thousands)',
+                    data: housingStarts.values,
+                    borderColor: '#6cebce',
+                    backgroundColor: 'rgba(108, 235, 206, 0.2)',
+                    fill: true
+                }]
+            },
+            options: { ...chartOptions, scales: { ...chartOptions.scales, y: { ...chartOptions.scales.y, title: { ...chartOptions.scales.y.title, text: 'Thousands' } } } }
+        }) : null;
 
-        if (chartVisibility.consumerSentiment) {
-            window.consumerSentimentChart = new Chart(document.getElementById('consumer-sentiment-chart'), {
-                type: 'line',
-                data: {
-                    labels: consumerSentimentLabels,
-                    datasets: [{
-                        label: 'Consumer Sentiment Index',
-                        data: consumerSentiment.values,
-                        borderColor: '#6cebce',
-                        backgroundColor: 'rgba(108, 235, 206, 0.2)',
-                        fill: true
-                    }]
-                },
-                options: { ...chartOptions, scales: { ...chartOptions.scales, y: { ...chartOptions.scales.y, title: { ...chartOptions.scales.y.title, text: 'Index' } } } }
-            });
-        }
+        consumerSentimentChart = chartVisibility.consumerSentiment ? initializeChart('consumer-sentiment', {
+            type: 'line',
+            data: {
+                labels: consumerSentimentLabels,
+                datasets: [{
+                    label: 'Consumer Sentiment Index',
+                    data: consumerSentiment.values,
+                    borderColor: '#6cebce',
+                    backgroundColor: 'rgba(108, 235, 206, 0.2)',
+                    fill: true
+                }]
+            },
+            options: { ...chartOptions, scales: { ...chartOptions.scales, y: { ...chartOptions.scales.y, title: { ...chartOptions.scales.y.title, text: 'Index' } } } }
+        }) : null;
 
         // Display prediction and reasoning
         resultElement.innerHTML = `
@@ -388,7 +380,132 @@ document.addEventListener('DOMContentLoaded', () => {
             chartVisibility[chartId] = e.target.checked;
             localStorage.setItem('chartVisibility', JSON.stringify(chartVisibility));
             document.getElementById(`${toggle}-container`).style.display = e.target.checked ? 'block' : 'none';
-            loadDashboard(document.getElementById('time-frame').value);
+            // Re-render the chart if shown, destroy if hidden
+            const chartVar = eval(`${chartId}Chart`);
+            if (chartVar) {
+                chartVar.destroy();
+                eval(`${chartId}Chart = null`);
+            }
+            if (e.target.checked) {
+                const configMap = {
+                    treasury: {
+                        type: 'line',
+                        data: {
+                            labels: treasuryLabels,
+                            datasets: [{
+                                label: '10Y Treasury Yield (%)',
+                                data: treasury.values,
+                                borderColor: '#6cebce',
+                                backgroundColor: 'rgba(108, 235, 206, 0.2)',
+                                fill: true
+                            }]
+                        },
+                        options: { ...chartOptions, scales: { ...chartOptions.scales, y: { ...chartOptions.scales.y, title: { ...chartOptions.scales.y.title, text: 'Yield (%)' } } } }
+                    },
+                    tedspread: {
+                        type: 'line',
+                        data: {
+                            labels: tedSpreadLabels,
+                            datasets: [{
+                                label: 'TED Spread (%)',
+                                data: tedSpread.values,
+                                borderColor: '#6cebce',
+                                backgroundColor: 'rgba(108, 235, 206, 0.2)',
+                                fill: true
+                            }]
+                        },
+                        options: { ...chartOptions, scales: { ...chartOptions.scales, y: { ...chartOptions.scales.y, beginAtZero: true, title: { ...chartOptions.scales.y.title, text: 'Spread (%)' } } } }
+                    },
+                    cpi: {
+                        type: 'line',
+                        data: {
+                            labels: cpiLabels,
+                            datasets: [{
+                                label: 'CPI Index',
+                                data: cpi.values,
+                                borderColor: '#6cebce',
+                                backgroundColor: 'rgba(108, 235, 206, 0.2)',
+                                fill: true
+                            }]
+                        },
+                        options: { ...chartOptions, scales: { ...chartOptions.scales, y: { ...chartOptions.scales.y, title: { ...chartOptions.scales.y.title, text: 'Index' } } } }
+                    },
+                    baml: {
+                        type: 'line',
+                        data: {
+                            labels: bamlLabels,
+                            datasets: [{
+                                label: 'BBB Spread (%)',
+                                data: baml.values,
+                                borderColor: '#6cebce',
+                                backgroundColor: 'rgba(108, 235, 206, 0.2)',
+                                fill: true
+                            }]
+                        },
+                        options: { ...chartOptions, scales: { ...chartOptions.scales, y: { ...chartOptions.scales.y, title: { ...chartOptions.scales.y.title, text: 'Spread (%)' } } } }
+                    },
+                    'mortgage-spread': {
+                        type: 'line',
+                        data: {
+                            labels: mortgageSpreadLabels,
+                            datasets: [{
+                                label: 'Mortgage Market Spread (%)',
+                                data: mortgageSpread.values,
+                                borderColor: '#6cebce',
+                                backgroundColor: 'rgba(108, 235, 206, 0.2)',
+                                fill: true
+                            }]
+                        },
+                        options: { ...chartOptions, scales: { ...chartOptions.scales, y: { ...chartOptions.scales.y, title: { ...chartOptions.scales.y.title, text: 'Spread (%)' } } } }
+                    },
+                    unemployment: {
+                        type: 'line',
+                        data: {
+                            labels: unemploymentLabels,
+                            datasets: [{
+                                label: 'Unemployment Rate (%)',
+                                data: unemployment.values,
+                                borderColor: '#6cebce',
+                                backgroundColor: 'rgba(108, 235, 206, 0.2)',
+                                fill: true
+                            }]
+                        },
+                        options: { ...chartOptions, scales: { ...chartOptions.scales, y: { ...chartOptions.scales.y, title: { ...chartOptions.scales.y.title, text: 'Rate (%)' } } } }
+                    },
+                    'housing-starts': {
+                        type: 'line',
+                        data: {
+                            labels: housingStartsLabels,
+                            datasets: [{
+                                label: 'Housing Starts (Thousands)',
+                                data: housingStarts.values,
+                                borderColor: '#6cebce',
+                                backgroundColor: 'rgba(108, 235, 206, 0.2)',
+                                fill: true
+                            }]
+                        },
+                        options: { ...chartOptions, scales: { ...chartOptions.scales, y: { ...chartOptions.scales.y, title: { ...chartOptions.scales.y.title, text: 'Thousands' } } } }
+                    },
+                    'consumer-sentiment': {
+                        type: 'line',
+                        data: {
+                            labels: consumerSentimentLabels,
+                            datasets: [{
+                                label: 'Consumer Sentiment Index',
+                                data: consumerSentiment.values,
+                                borderColor: '#6cebce',
+                                backgroundColor: 'rgba(108, 235, 206, 0.2)',
+                                fill: true
+                            }]
+                        },
+                        options: { ...chartOptions, scales: { ...chartOptions.scales, y: { ...chartOptions.scales.y, title: { ...chartOptions.scales.y.title, text: 'Index' } } } }
+                    }
+                };
+                if (configMap[chartId]) {
+                    eval(`${chartId}Chart = initializeChart('${chartId}', configMap['${chartId}'])`);
+                }
+            }
+            updateChartColors();
         });
     });
 
