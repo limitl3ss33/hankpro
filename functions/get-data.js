@@ -1,4 +1,25 @@
-const axios = require('axios');
+const https = require('https');
+
+// Helper function to make HTTP GET requests using https
+const get = (url) => {
+    return new Promise((resolve, reject) => {
+        https.get(url, (res) => {
+            let data = '';
+            res.on('data', (chunk) => {
+                data += chunk;
+            });
+            res.on('end', () => {
+                try {
+                    resolve(JSON.parse(data));
+                } catch (error) {
+                    reject(new Error('Failed to parse JSON: ' + error.message));
+                }
+            });
+        }).on('error', (error) => {
+            reject(error);
+        });
+    });
+};
 
 exports.handler = async () => {
     try {
@@ -6,19 +27,19 @@ exports.handler = async () => {
         const ALPHA_API_KEY = '6ABAUI46IPROWENZ';
 
         // Fetch 10Y Treasury Yield (DGS10) from FRED
-        const treasuryResponse = await axios.get(
+        const treasuryData = await get(
             `https://api.stlouisfed.org/fred/series/observations?series_id=DGS10&api_key=${FRED_API_KEY}&limit=5&file_type=json&sort_order=desc`
         );
         const treasury = {
-            dates: treasuryResponse.data.observations.map(obs => obs.date),
-            values: treasuryResponse.data.observations.map(obs => parseFloat(obs.value))
+            dates: treasuryData.observations.map(obs => obs.date),
+            values: treasuryData.observations.map(obs => parseFloat(obs.value))
         };
 
         // Fetch VIX from Alpha Vantage
-        const vixResponse = await axios.get(
+        const vixData = await get(
             `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=VIX&apikey=${ALPHA_API_KEY}`
         );
-        const vixSeries = vixResponse.data['Time Series (Daily)'];
+        const vixSeries = vixData['Time Series (Daily)'];
         if (!vixSeries) {
             throw new Error('VIX data unavailable: API limit reached or invalid response');
         }
@@ -28,21 +49,21 @@ exports.handler = async () => {
         };
 
         // Fetch CPI (CPIAUCSL) from FRED
-        const cpiResponse = await axios.get(
+        const cpiData = await get(
             `https://api.stlouisfed.org/fred/series/observations?series_id=CPIAUCSL&api_key=${FRED_API_KEY}&limit=5&file_type=json&sort_order=desc`
         );
         const cpi = {
-            dates: cpiResponse.data.observations.map(obs => obs.date),
-            values: cpiResponse.data.observations.map(obs => parseFloat(obs.value))
+            dates: cpiData.observations.map(obs => obs.date),
+            values: cpiData.observations.map(obs => parseFloat(obs.value))
         };
 
         // Fetch BAMLC0A4CBBB from FRED
-        const bamlResponse = await axios.get(
+        const bamlData = await get(
             `https://api.stlouisfed.org/fred/series/observations?series_id=BAMLC0A4CBBB&api_key=${FRED_API_KEY}&limit=5&file_type=json&sort_order=desc`
         );
         const baml = {
-            dates: bamlResponse.data.observations.map(obs => obs.date),
-            values: bamlResponse.data.observations.map(obs => parseFloat(obs.value))
+            dates: bamlData.observations.map(obs => obs.date),
+            values: bamlData.observations.map(obs => parseFloat(obs.value))
         };
 
         return {
