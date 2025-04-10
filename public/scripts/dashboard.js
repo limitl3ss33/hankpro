@@ -122,14 +122,20 @@ function initializeChart(chartId, config) {
 // Data fetching and rendering
 async function loadDashboard(timeFrame = '1month') {
     const resultElement = document.getElementById('result');
+    console.log(`Loading dashboard with timeFrame: ${timeFrame}`); // Debug log
 
     try {
         // Fetch data from Netlify Function with selected time frame
-        const response = await fetch(`/.netlify/functions/get-data?timeFrame=${timeFrame}`);
+        const response = await fetch(`/.netlify/functions/get-data?timeFrame=${timeFrame}`, {
+            headers: {
+                'Cache-Control': 'no-cache' // Prevent caching
+            }
+        });
         if (!response.ok) {
             throw new Error(`HTTP error! Status: ${response.status}`);
         }
         const data = await response.json();
+        console.log('Fetched data:', data); // Debug log
 
         if (data.error) {
             throw new Error(data.error);
@@ -552,6 +558,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Add event listener for time frame changes
     document.getElementById('time-frame').addEventListener('change', (e) => {
+        console.log(`Time frame changed to: ${e.target.value}`); // Debug log
         loadDashboard(e.target.value);
     });
 });
