@@ -43,6 +43,11 @@ class SimpleLogisticRegression {
         );
         return linearModel.map(this.sigmoid);
     }
+
+    // Provide feature importance (weights) for reasoning
+    getFeatureImportance() {
+        return this.weights;
+    }
 }
 
 // Update chart colors based on dark mode
@@ -62,12 +67,12 @@ function updateChartColors() {
 }
 
 // Data fetching and rendering
-async function loadDashboard() {
+async function loadDashboard(timeFrame = '1month') {
     const resultElement = document.getElementById('result');
 
     try {
-        // Fetch data from Netlify Function
-        const response = await fetch('/.netlify/functions/get-data');
+        // Fetch data from Netlify Function with selected time frame
+        const response = await fetch(`/.netlify/functions/get-data?timeFrame=${timeFrame}`);
         if (!response.ok) {
             throw new Error(`HTTP error! Status: ${response.status}`);
         }
@@ -79,7 +84,7 @@ async function loadDashboard() {
 
         const { treasury, vix, cpi, baml } = data;
 
-        // Historical data (dummy; replace with real Non-QM data)
+        // Historical data (replace with real Non-QM rate data)
         const historicalData = {
             X: [
                 [3.5, 20, 271.0, 1.4], // [Treasury, VIX, CPI, BAMLC0A4CBBB]
@@ -88,7 +93,7 @@ async function loadDashboard() {
                 [3.8, 23, 272.5, 1.7],
                 [3.9, 25, 273.0, 1.8]
             ],
-            y: [1, 0, 1, 1, 0] // 1 = increase, 0 = decrease
+            y: [0, 1, 1, 0, 1] // 1 = increase, 0 = decrease
         };
 
         // Train model
@@ -97,15 +102,25 @@ async function loadDashboard() {
 
         // Current data (most recent values)
         const currentData = [
-            treasury.values[0],
-            vix.values[0],
-            cpi.values[0],
-            baml.values[0]
+            treasury.values[treasury.values.length - 1],
+            vix.values[vix.values.length - 1],
+            cpi.values[cpi.values.length - 1],
+            baml.values[baml.values.length - 1]
         ];
 
         // Predict
         const predictionProba = model.predict_proba([currentData])[0];
         const increaseProb = Math.round(predictionProba * 100);
+
+        // Get feature importance for reasoning
+        const featureImportance = model.getFeatureImportance();
+        const features = ['10Y Treasury Yield', 'VIX Index', 'CPI Index', 'BBB Spread'];
+        let reasoning = 'The prediction is based on the following market indicators:\n';
+        featureImportance.forEach((weight, i) => {
+            const impact = weight * currentData[i];
+            const direction = impact > 0 ? 'increases' : 'decreases';
+            reasoning += `- ${features[i]} (${currentData[i].toFixed(2)}): ${direction} the likelihood of a rate increase (impact: ${impact.toFixed(2)})\n`;
+        });
 
         // Chart options
         const chartOptions = {
@@ -115,6 +130,12 @@ async function loadDashboard() {
             },
             plugins: { legend: { labels: { color: document.body.classList.contains('dark-mode') ? '#f3f4f6' : '#000' } } }
         };
+
+        // Destroy existing charts if they exist
+        if (window.treasuryChart) window.treasuryChart.destroy();
+        if (window.vixChart) window.vixChart.destroy();
+        if (window.cpiChart) window.cpiChart.destroy();
+        if (window.bamlChart) window.bamlChart.destroy();
 
         // Render charts
         window.treasuryChart = new Chart(document.getElementById('treasury-chart'), {
@@ -177,8 +198,13 @@ async function loadDashboard() {
             options: { ...chartOptions, scales: { ...chartOptions.scales, y: { ...chartOptions.scales.y, title: { ...chartOptions.scales.y.title, text: 'Spread (%)' } } } }
         });
 
-        // Display prediction
-        resultElement.textContent = `Chance of Non-QM rate increase: ${increaseProb}%`;
+        // Display prediction and reasoning
+        resultElement.innerHTML = `
+            <h3>Rate Prediction</h3>
+            <p>Chance of Non-QM rate increase: ${increaseProb}%</p>
+            <p><strong>Reasoning:</strong></p>
+            <pre>${reasoning}</pre>
+        `;
 
         // Update chart colors after rendering
         updateChartColors();
@@ -188,12 +214,51 @@ async function loadDashboard() {
     }
 }
 
-// Load dashboard when the DOM is ready
-document.addEventListener('DOMContentLoaded', loadDashboard);
+// Initialize with default time frame
+document.addEventListener('DOMContentLoaded', () => {
+    loadDashboard('1month');
+
+    // Add time frame selector
+    const timeFrameSelector = document.createElement('div');
+    timeFrameSelector.className = 'time-frame-selector';
+    timeFrameSelector.innerHTML = `
+        <label for="time-frame">Select Time Frame: </label>
+        <select id="time-frame">
+            <option value="1day">1 Day</option>
+            <option value="3day">3 Days</option>
+            <option value="7day">7 Days</option>
+            <option value="1month" selected>1 Month</option>
+            <option value="3month">3 Months</option>
+            <option value="1year">1 Year</option>
+            <option value="5year">5 Years</option>
+        </select>
+    `;
+    document.querySelector('.calculator').insertBefore(timeFrameSelector, document.querySelector('.tool-grid'));
+
+    // Add instructions
+    const instructions = document.createElement('div');
+    instructions.className = 'instructions';
+    instructions.innerHTML = `
+        <h3>Instructions</h3>
+        <p>Welcome to the Rate Prediction Dashboard! This tool helps you analyze market trends and predict Non-QM rate movements. Here's how to use it:</p>
+        <ul>
+            <li><strong>Select a Time Frame:</strong> Use the dropdown menu to choose a time frame (e.g., 1 day, 1 month, 1 year) to view historical data for that period.</li>
+            <li><strong>View Market Indicators:</strong> The charts display four key indicators: 10Y Treasury Yield, VIX Index, CPI Index, and BBB Spread. These indicators influence Non-QM rates.</li>
+            <li><strong>Understand the Prediction:</strong> The "Rate Prediction" section shows the likelihood of a Non-QM rate increase, along with reasoning based on the current values of the market indicators.</li>
+            <li><strong>Reasoning:</strong> The reasoning explains how each indicator contributes to the prediction. A positive impact increases the likelihood of a rate increase, while a negative impact decreases it.</li>
+        </ul>
+    `;
+    document.querySelector('.calculator').insertBefore(instructions, document.querySelector('.time-frame-selector'));
+
+    // Add event listener for time frame changes
+    document.getElementById('time-frame').addEventListener('change', (e) => {
+        loadDashboard(e.target.value);
+    });
+});
 
 // Update chart colors when dark mode toggles (triggered from header)
 document.addEventListener('click', (e) => {
     if (e.target.id === 'dark-mode-toggle') {
-        setTimeout(updateChartColors, 0); // Ensure charts update after class toggle
+        setTimeout(updateChartColors, 0);
     }
 });
