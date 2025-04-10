@@ -84,6 +84,13 @@ async function loadDashboard(timeFrame = '1month') {
 
         const { treasury, vix, cpi, baml } = data;
 
+        // Adjust labels for 1-day time frame (today vs yesterday)
+        const isOneDay = timeFrame === '1day';
+        const treasuryLabels = isOneDay ? ['Yesterday', 'Today'] : treasury.dates;
+        const vixLabels = isOneDay ? ['Yesterday', 'Today'] : vix.dates;
+        const cpiLabels = isOneDay ? ['Last Month', 'This Month'] : cpi.dates;
+        const bamlLabels = isOneDay ? ['Yesterday', 'Today'] : baml.dates;
+
         // Historical data (replace with real Non-QM rate data)
         const historicalData = {
             X: [
@@ -141,7 +148,7 @@ async function loadDashboard(timeFrame = '1month') {
         window.treasuryChart = new Chart(document.getElementById('treasury-chart'), {
             type: 'line',
             data: {
-                labels: treasury.dates,
+                labels: treasuryLabels,
                 datasets: [{
                     label: '10Y Treasury Yield (%)',
                     data: treasury.values,
@@ -156,7 +163,7 @@ async function loadDashboard(timeFrame = '1month') {
         window.vixChart = new Chart(document.getElementById('vix-chart'), {
             type: 'line',
             data: {
-                labels: vix.dates,
+                labels: vixLabels,
                 datasets: [{
                     label: 'VIX Index',
                     data: vix.values,
@@ -171,7 +178,7 @@ async function loadDashboard(timeFrame = '1month') {
         window.cpiChart = new Chart(document.getElementById('cpi-chart'), {
             type: 'line',
             data: {
-                labels: cpi.dates,
+                labels: cpiLabels,
                 datasets: [{
                     label: 'CPI Index',
                     data: cpi.values,
@@ -186,7 +193,7 @@ async function loadDashboard(timeFrame = '1month') {
         window.bamlChart = new Chart(document.getElementById('baml-chart'), {
             type: 'line',
             data: {
-                labels: baml.dates,
+                labels: bamlLabels,
                 datasets: [{
                     label: 'BBB Spread (%)',
                     data: baml.values,
@@ -242,7 +249,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <h3>Instructions</h3>
         <p>Welcome to the Rate Prediction Dashboard! This tool helps you analyze market trends and predict Non-QM rate movements. Here's how to use it:</p>
         <ul>
-            <li><strong>Select a Time Frame:</strong> Use the dropdown menu to choose a time frame (e.g., 1 day, 1 month, 1 year) to view historical data for that period.</li>
+            <li><strong>Select a Time Frame:</strong> Use the dropdown menu to choose a time frame (e.g., 1 day, 1 month, 1 year) to view historical data for that period. For the 1-day time frame, it shows today's value compared to yesterday's.</li>
             <li><strong>View Market Indicators:</strong> The charts display four key indicators: 10Y Treasury Yield, VIX Index, CPI Index, and BBB Spread. These indicators influence Non-QM rates.</li>
             <li><strong>Understand the Prediction:</strong> The "Rate Prediction" section shows the likelihood of a Non-QM rate increase, along with reasoning based on the current values of the market indicators.</li>
             <li><strong>Reasoning:</strong> The reasoning explains how each indicator contributes to the prediction. A positive impact increases the likelihood of a rate increase, while a negative impact decreases it.</li>
