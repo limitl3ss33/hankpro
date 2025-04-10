@@ -1272,3 +1272,83 @@ button:hover {
         margin: 0.5in;
     }
 }
+
+.time-frame-selector {
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.time-frame-selector label {
+    font-size: 1.2em;
+    margin-right: 10px;
+    color: #000;
+}
+
+body.dark-mode .time-frame-selector label {
+    color: #f3f4f6;
+}
+
+.time-frame-selector select {
+    padding: 5px;
+    font-size: 1em;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    background: #fff;
+    color: #000;
+}
+
+body.dark-mode .time-frame-selector select {
+    background: #374151;
+    color: #f3f4f6;
+    border-color: #6cebce;
+}
+
+.instructions {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #e6f7f3;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+body.dark-mode .instructions {
+    background: #4b5563;
+}
+
+.instructions h3 {
+    font-size: 1.5em;
+    margin-bottom: 10px;
+    color: #000;
+}
+
+body.dark-mode .instructions h3 {
+    color: #f3f4f6;
+}
+
+.instructions p, .instructions ul {
+    font-size: 1em;
+    color: #000;
+}
+
+body.dark-mode .instructions p, body.dark-mode .instructions ul {
+    color: #d1d5db;
+}
+
+.instructions ul {
+    list-style-type: disc;
+    padding-left: 20px;
+}
+
+.instructions li {
+    margin-bottom: 10px;
+}
+
+.result-panel pre {
+    white-space: pre-wrap;
+    font-size: 0.9em;
+    color: #000;
+}
+
+body.dark-mode .result-panel pre {
+    color: #d1d5db;
+}
