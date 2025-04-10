@@ -54,7 +54,7 @@ class SimpleLogisticRegression {
 function updateChartColors() {
     const isDark = document.body.classList.contains('dark-mode');
     const labelColor = isDark ? '#f3f4f6' : '#000';
-    [treasuryChart, vixChart, cpiChart, bamlChart].forEach(chart => {
+    [treasuryChart, tedSpreadChart, cpiChart, bamlChart].forEach(chart => {
         if (chart) {
             chart.options.plugins.legend.labels.color = labelColor;
             chart.options.scales.x.title.color = labelColor;
@@ -82,23 +82,23 @@ async function loadDashboard(timeFrame = '1month') {
             throw new Error(data.error);
         }
 
-        const { treasury, vix, cpi, baml } = data;
+        const { treasury, tedSpread, cpi, baml } = data;
 
         // Adjust labels for 1-day time frame (today vs yesterday)
         const isOneDay = timeFrame === '1day';
         const treasuryLabels = isOneDay ? ['Yesterday', 'Today'] : treasury.dates;
-        const vixLabels = isOneDay ? ['Yesterday', 'Today'] : vix.dates;
+        const tedSpreadLabels = isOneDay ? ['Yesterday', 'Today'] : tedSpread.dates;
         const cpiLabels = isOneDay ? ['Last Month', 'This Month'] : cpi.dates;
         const bamlLabels = isOneDay ? ['Yesterday', 'Today'] : baml.dates;
 
         // Historical data (replace with real Non-QM rate data)
         const historicalData = {
             X: [
-                [3.5, 20, 271.0, 1.4], // [Treasury, VIX, CPI, BAMLC0A4CBBB]
-                [3.6, 22, 271.5, 1.5],
-                [3.7, 21, 272.0, 1.6],
-                [3.8, 23, 272.5, 1.7],
-                [3.9, 25, 273.0, 1.8]
+                [3.5, 0.5, 271.0, 1.4], // [Treasury, TED Spread, CPI, BAMLC0A4CBBB]
+                [3.6, 0.6, 271.5, 1.5],
+                [3.7, 0.7, 272.0, 1.6],
+                [3.8, 0.8, 272.5, 1.7],
+                [3.9, 0.9, 273.0, 1.8]
             ],
             y: [0, 1, 1, 0, 1] // 1 = increase, 0 = decrease
         };
@@ -110,7 +110,7 @@ async function loadDashboard(timeFrame = '1month') {
         // Current data (most recent values)
         const currentData = [
             treasury.values[treasury.values.length - 1],
-            vix.values[vix.values.length - 1],
+            tedSpread.values[tedSpread.values.length - 1],
             cpi.values[cpi.values.length - 1],
             baml.values[baml.values.length - 1]
         ];
@@ -121,7 +121,7 @@ async function loadDashboard(timeFrame = '1month') {
 
         // Get feature importance for reasoning
         const featureImportance = model.getFeatureImportance();
-        const features = ['10Y Treasury Yield', 'VIX Index', 'CPI Index', 'BBB Spread'];
+        const features = ['10Y Treasury Yield', 'TED Spread', 'CPI Index', 'BBB Spread'];
         let reasoning = 'The prediction is based on the following market indicators:\n';
         featureImportance.forEach((weight, i) => {
             const impact = weight * currentData[i];
@@ -140,7 +140,7 @@ async function loadDashboard(timeFrame = '1month') {
 
         // Destroy existing charts if they exist
         if (window.treasuryChart) window.treasuryChart.destroy();
-        if (window.vixChart) window.vixChart.destroy();
+        if (window.tedSpreadChart) window.tedSpreadChart.destroy();
         if (window.cpiChart) window.cpiChart.destroy();
         if (window.bamlChart) window.bamlChart.destroy();
 
@@ -160,19 +160,19 @@ async function loadDashboard(timeFrame = '1month') {
             options: { ...chartOptions, scales: { ...chartOptions.scales, y: { ...chartOptions.scales.y, title: { ...chartOptions.scales.y.title, text: 'Yield (%)' } } } }
         });
 
-        window.vixChart = new Chart(document.getElementById('vix-chart'), {
+        window.tedSpreadChart = new Chart(document.getElementById('vix-chart'), {
             type: 'line',
             data: {
-                labels: vixLabels,
+                labels: tedSpreadLabels,
                 datasets: [{
-                    label: 'VIX Index',
-                    data: vix.values,
+                    label: 'TED Spread (%)',
+                    data: tedSpread.values,
                     borderColor: '#6cebce',
                     backgroundColor: 'rgba(108, 235, 206, 0.2)',
                     fill: true
                 }]
             },
-            options: { ...chartOptions, scales: { ...chartOptions.scales, y: { ...chartOptions.scales.y, beginAtZero: true, title: { ...chartOptions.scales.y.title, text: 'Index' } } } }
+            options: { ...chartOptions, scales: { ...chartOptions.scales, y: { ...chartOptions.scales.y, beginAtZero: true, title: { ...chartOptions.scales.y.title, text: 'Spread (%)' } } } }
         });
 
         window.cpiChart = new Chart(document.getElementById('cpi-chart'), {
@@ -250,7 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <p>Welcome to the Rate Prediction Dashboard! This tool helps you analyze market trends and predict Non-QM rate movements. Here's how to use it:</p>
         <ul>
             <li><strong>Select a Time Frame:</strong> Use the dropdown menu to choose a time frame (e.g., 1 day, 1 month, 1 year) to view historical data for that period. For the 1-day time frame, it shows today's value compared to yesterday's.</li>
-            <li><strong>View Market Indicators:</strong> The charts display four key indicators: 10Y Treasury Yield, VIX Index, CPI Index, and BBB Spread. These indicators influence Non-QM rates.</li>
+            <li><strong>View Market Indicators:</strong> The charts display four key indicators: 10Y Treasury Yield, TED Spread, CPI Index, and BBB Spread. These indicators influence Non-QM rates.</li>
             <li><strong>Understand the Prediction:</strong> The "Rate Prediction" section shows the likelihood of a Non-QM rate increase, along with reasoning based on the current values of the market indicators.</li>
             <li><strong>Reasoning:</strong> The reasoning explains how each indicator contributes to the prediction. A positive impact increases the likelihood of a rate increase, while a negative impact decreases it.</li>
         </ul>
