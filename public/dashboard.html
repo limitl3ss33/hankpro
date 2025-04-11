@@ -16,6 +16,58 @@
         <section class="calculator">
             <h2>Rate Prediction Dashboard</h2>
             <p>Analyze market trends and predict Non-QM rate movements</p>
+            
+            <!-- Instructions Panel -->
+            <div class="instructions">
+                <h3>How to Use This Dashboard</h3>
+                <p>Welcome to the Rate Prediction Dashboard! This tool helps you analyze market trends and predict Non-QM rate movements.</p>
+                <ul>
+                    <li><strong>Select a Time Frame:</strong> Choose how much historical data to display (1 day to 5 years)</li>
+                    <li><strong>Show/Hide Charts:</strong> Customize which market indicators you want to monitor</li>
+                    <li><strong>View Prediction:</strong> See the likelihood of a Non-QM rate increase and the factors driving it</li>
+                    <li><strong>Download Report:</strong> Save the current prediction and analysis as a PDF</li>
+                </ul>
+            </div>
+            
+            <!-- Controls Panel -->
+            <div class="dashboard-controls">
+                <!-- Time Frame Selector -->
+                <div class="time-frame-selector">
+                    <label for="time-frame">Time Frame: </label>
+                    <select id="time-frame">
+                        <option value="1day">1 Day</option>
+                        <option value="3day">3 Days</option>
+                        <option value="7day">7 Days</option>
+                        <option value="1month" selected>1 Month</option>
+                        <option value="3month">3 Months</option>
+                        <option value="1year">1 Year</option>
+                        <option value="5year">5 Years</option>
+                    </select>
+                </div>
+                
+                <!-- Chart Controls -->
+                <div class="chart-controls">
+                    <button id="toggle-all-charts" class="toggle-all-btn">Show/Hide All</button>
+                    <div class="checkbox-container">
+                        <label><input type="checkbox" id="toggle-treasury" checked> 10Y Treasury</label>
+                        <label><input type="checkbox" id="toggle-tedspread" checked> TED Spread</label>
+                        <label><input type="checkbox" id="toggle-cpi" checked> CPI Index</label>
+                        <label><input type="checkbox" id="toggle-baml" checked> BBB Spread</label>
+                        <label><input type="checkbox" id="toggle-mortgage-spread" checked> Mortgage Spread</label>
+                        <label><input type="checkbox" id="toggle-unemployment" checked> Unemployment</label>
+                        <label><input type="checkbox" id="toggle-housing-starts" checked> Housing Starts</label>
+                        <label><input type="checkbox" id="toggle-consumer-sentiment" checked> Consumer Sentiment</label>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="action-buttons">
+                    <button id="refresh-data" class="refresh-btn">Refresh Data</button>
+                    <button id="download-report" class="download-btn">Download Report</button>
+                </div>
+            </div>
+            
+            <!-- Charts Grid -->
             <div id="metrics" class="tool-grid">
                 <div id="treasury-container" class="tool-tile chart-container">
                     <canvas id="treasury-chart"></canvas>
@@ -42,9 +94,32 @@
                     <canvas id="consumer-sentiment-chart"></canvas>
                 </div>
             </div>
+            
+            <!-- Prediction Panel -->
             <div id="prediction" class="result-panel">
-                <h3>Rate Prediction</h3>
-                <p id="result">Loading prediction...</p>
+                <div class="prediction-header">
+                    <h3>Rate Prediction</h3>
+                    <div class="prediction-gauge">
+                        <div id="gauge-container"></div>
+                        <p id="prediction-percentage">Loading...</p>
+                    </div>
+                </div>
+                <div class="prediction-details">
+                    <div id="trend-summary" class="trend-summary">
+                        <h4>Trend Summary</h4>
+                        <p id="trend-text">Analyzing market trends...</p>
+                    </div>
+                    <div id="impact-factors" class="impact-factors">
+                        <h4>Impact Factors</h4>
+                        <div id="factor-bars"></div>
+                    </div>
+                </div>
+                <div id="result" class="prediction-text">
+                    <p>Loading prediction data...</p>
+                </div>
+                <div class="last-updated">
+                    Last updated: <span id="update-timestamp">Loading...</span>
+                </div>
             </div>
         </section>
     </main>
